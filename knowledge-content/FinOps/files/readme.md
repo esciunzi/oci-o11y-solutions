@@ -1,21 +1,4 @@
-# Mastering Cloud Cost Control with OCI Log Analytics #
 
-Oracle Cloud Infrastructure (OCI) provides several built-in tools to
-help users monitor, analyze, and control cloud spending. Among these
-tools are OCI Cost Analysis and Scheduled Reports, which offer
-visibility into usage patterns and cost trends over time. These tools
-are valuable for high-level reporting and day-to-day cost tracking,
-especially when trying to stay within budget or identify cost anomalies.
-
-However, for more in-depth analysis—such as breaking down spending
-across departments, correlating costs with specific resource tags, or
-building custom dashboards—access to raw cost and usage data becomes
-essential. This is where the ability to export and analyze detailed cost
-reports becomes particularly useful.
-
-OCI is fully compliant with the FinOps Foundation’s FOCUS (FinOps Open
-Cost and Usage Specification) standard. The FOCUS report provides a
-standardized and comprehensive dataset that includes detailed
 information about costs, services, compartments, tags, and more. This
 standardized format makes it easier to integrate OCI cost data into
 third-party tools or advanced analytics platforms.
@@ -132,7 +115,7 @@ endorse group finOps to read objects in tenancy usage-report
 allow group finOps to manage analytics-instances in compartment
 &lt;finOps compartment&gt;
 
-allow service metering\_overlay to manage objects in compartment
+allow service metering_overlay to manage objects in compartment
 &lt;finOps compartment&gt;
 
 Allow group finOps to manage functions-family in compartment &lt;finOps
@@ -190,92 +173,8 @@ fn init --runtime python copyusagereport
 
 cd copyusagereport
 ```
-Go to OCI Shell and edit the func.py
-```
-import io
+Go to OCI Shell, dowload the [func.py](./src/func.py) modify the tenant OCIs, bucket namepace and replace in the costusagereport
 
-import json
-
-import logging
-
-import oci
-
-from datetime import datetime, timedelta
-
-from fdk import response
-
-def handler(ctx, data: io.BytesIO = None):
-
-try:
-
-reporting\_namespace = 'bling'
-
-reporting\_bucket = '<Tenancy OCID>'
-
-yesterday = datetime.now() - timedelta(days=3)
-
-prefix\_file = f"FOCUS
-Reports/{yesterday.year}/{yesterday.strftime('%m')}/{yesterday.strftime('%d')}"
-
-print(f"prefix is {prefix\_file}")
-
-destination\_path = '/tmp'
-
-dest\_namespace='frxfz3gch4zb'
-
-upload\_bucket\_name = 'Cost\_Usage\_Reports'
-
-Signer = oci.auth.signers.get\_resource\_principals\_signer()
-
-object\_storage = oci.object\_storage.ObjectStorageClient(config={},
-signer=Signer)
-
-report\_bucket\_objects =
-oci.pagination.list\_call\_get\_all\_results(object\_storage.list\_objects,
-reporting\_namespace, reporting\_bucket, prefix=prefix\_file)
-
-for o in report\_bucket\_objects.data.objects:
-
-object\_details = object\_storage.get\_object(reporting\_namespace,
-reporting\_bucket, o.name)
-
-filename = o.name.rsplit('/', 1)\[-1\]
-
-local\_file\_path = destination\_path+'/'+filename
-
-with open(local\_file\_path, 'wb') as f:
-
-for chunk in object\_details.data.raw.stream(1024 \* 1024,
-decode\_content=False):
-
-f.write(chunk)
-
-with open(local\_file\_path, 'rb') as file\_content:
-
-object\_storage.put\_object(
-
-namespace\_name=dest\_namespace,
-
-bucket\_name=upload\_bucket\_name,
-
-object\_name=filename,
-
-put\_object\_body=file\_content
-
-)
-
-except (Exception, ValueError) as ex:
-
-logging.getLogger().info('error parsing payload: ' + str(ex))
-
-return response.Response(
-
-ctx, response\_data=json.dumps(
-
-{"message": "Processed Files sucessfully"})
-
-)
-```
 Deploy the function
 ```
 fn -v deploy --app FinOpsX86
