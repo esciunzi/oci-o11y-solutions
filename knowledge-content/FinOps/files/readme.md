@@ -114,13 +114,12 @@ Create a policy with the follow statement
 
 dg-fn-copy-CUR-reports dynamic group matching rule
 ```
-ALL {resource.type = 'fnfunc', resource.compartment.id = '&lt;finOps
-compartment OCID&gt;’}
+ALL {resource.type = 'fnfunc', resource.compartment.id = 'finOps_compartment’}
 ```
 LogAnalyticsObjectCollectionRule dynamic group matching rule
 ```
 ALL {resource.type='loganalyticsobjectcollectionrule',
-resource.compartment.id = '&lt;finOps compartment OCID&gt;’}
+resource.compartment.id = 'finOps_compartment’}
 ```
 Policy Statements
 ```
@@ -129,160 +128,52 @@ ocid1.tenancy.oc1..aaaaaaaaned4fkpkisbwjlr56u7cj63lf3wffbilvqknstgtvzub7vhqkggq
 
 endorse group finOps to read objects in tenancy usage-report
 
-allow group finOps to manage analytics-instances in compartment
-&lt;finOps compartment&gt;
+allow group finOps to manage analytics-instances in compartment finOps_compartment
 
-allow service metering\_overlay to manage objects in compartment
-&lt;finOps compartment&gt;
+allow service metering_overlay to manage objects in compartment finOps_compartment
 
-Allow group finOps to manage functions-family in compartment &lt;finOps
-compartment&gt;
+Allow group finOps to manage functions-family in compartment finOps_compartment
 
-Allow group finOps to manage health-check-family in compartment
-&lt;finOps compartment&gt;
+Allow group finOps to manage health-check-family in compartment finOps_compartment
 
-Allow group finOps to manage virtual-network-family in compartment
-&lt;finOps compartment&gt;
+Allow group finOps to manage virtual-network-family in compartment finOps_compartment
 
-Allow dynamic-group dg-fn-copy-CUR-reports to manage objects in
-compartment &lt;finOps compartment&gt;
+Allow dynamic-group dg-fn-copy-CUR-reports to manage objects in compartment finOps_compartment
 
-endorse dynamic-group dg-fn-copy-CUR-reports to read objects in tenancy
-usage-report
+endorse dynamic-group dg-fn-copy-CUR-reports to read objects in tenancy usage-report
 
-Allow dynamic-group dg-fn-copy-CUR-reports to inspect compartments in
-tenancy
+Allow dynamic-group dg-fn-copy-CUR-reports to inspect compartments in tenancy
 
-Allow dynamic-group dg-fn-copy-CUR-reports to inspect tenancies in
-tenancy
+Allow dynamic-group dg-fn-copy-CUR-reports to inspect tenancies in tenancy
 
-allow DYNAMIC-GROUP LogAnalyticsObjectCollectionRule to read buckets in
-tenancy
+allow DYNAMIC-GROUP LogAnalyticsObjectCollectionRule to read buckets in tenancy
 
-allow DYNAMIC-GROUP LogAnalyticsObjectCollectionRule to read objects in
-tenancy
+allow DYNAMIC-GROUP LogAnalyticsObjectCollectionRule to read objects in tenancy
 
-allow DYNAMIC-GROUP LogAnalyticsObjectCollectionRule to manage
-cloudevents-rules in tenancy
+allow DYNAMIC-GROUP LogAnalyticsObjectCollectionRule to manage cloudevents-rules in tenancy
 
-allow DYNAMIC-GROUP LogAnalyticsObjectCollectionRule to inspect
-compartments in tenancy
+allow DYNAMIC-GROUP LogAnalyticsObjectCollectionRule to inspect compartments in tenancy
 
-allow DYNAMIC-GROUP LogAnalyticsObjectCollectionRule to use
-tag-namespaces in tenancy
+allow DYNAMIC-GROUP LogAnalyticsObjectCollectionRule to use tag-namespaces in tenancy
 
-allow DYNAMIC-GROUP LogAnalyticsObjectCollectionRule to
-{STREAM\_CONSUME} in tenancy
+allow DYNAMIC-GROUP LogAnalyticsObjectCollectionRule to {STREAM_CONSUME} in tenancy
 ```
 *Create the Functions to export the Report into a custom Object Storage*
 
-Create an application in OCI Console. Go to Developer Services &gt;
-Applications &gt; Create Application &gt; FinOpsX86
+Create an application in OCI Console. Go to Developer Services ->
+Applications ->Create Application -> FinOpsX86
 
 <img src="./images/image5.png"
 style="width:3.27588in;height:3.3402in" />
 
 Fig.5 – Application
 
-In OCI Shell initialize the function:
-```
-fn init --runtime python copyusagereport
-
-cd copyusagereport
-```
-Go to OCI Shell and edit the func.py
-```
-import io
-
-import json
-
-import logging
-
-import oci
-
-from datetime import datetime, timedelta
-
-from fdk import response
-
-def handler(ctx, data: io.BytesIO = None):
-
-try:
-
-reporting\_namespace = 'bling'
-
-reporting\_bucket = '<Tenancy OCID>'
-
-yesterday = datetime.now() - timedelta(days=3)
-
-prefix\_file = f"FOCUS
-Reports/{yesterday.year}/{yesterday.strftime('%m')}/{yesterday.strftime('%d')}"
-
-print(f"prefix is {prefix\_file}")
-
-destination\_path = '/tmp'
-
-dest\_namespace='<Dest Namespace>'
-
-upload\_bucket\_name = 'Cost\_Usage\_Reports'
-
-Signer = oci.auth.signers.get\_resource\_principals\_signer()
-
-object\_storage = oci.object\_storage.ObjectStorageClient(config={},
-signer=Signer)
-
-report\_bucket\_objects =
-oci.pagination.list\_call\_get\_all\_results(object\_storage.list\_objects,
-reporting\_namespace, reporting\_bucket, prefix=prefix\_file)
-
-for o in report\_bucket\_objects.data.objects:
-
-object\_details = object\_storage.get\_object(reporting\_namespace,
-reporting\_bucket, o.name)
-
-filename = o.name.rsplit('/', 1)\[-1\]
-
-local\_file\_path = destination\_path+'/'+filename
-
-with open(local\_file\_path, 'wb') as f:
-
-for chunk in object\_details.data.raw.stream(1024 \* 1024,
-decode\_content=False):
-
-f.write(chunk)
-
-with open(local\_file\_path, 'rb') as file\_content:
-
-object\_storage.put\_object(
-
-namespace\_name=dest\_namespace,
-
-bucket\_name=upload\_bucket\_name,
-
-object\_name=filename,
-
-put\_object\_body=file\_content
-
-)
-
-except (Exception, ValueError) as ex:
-
-logging.getLogger().info('error parsing payload: ' + str(ex))
-
-return response.Response(
-
-ctx, response\_data=json.dumps(
-
-{"message": "Processed Files sucessfully"})
-
-)
-```
-Deploy the function
+Downolad the [function](./src/func.py) and replace the bucket details.  In OCI Shell replace the func.py and deploy it
 ```
 fn -v deploy --app FinOpsX86
 ```
 Define a scheduler. Create an application in OCI Console. Go to
-Developer Services &gt; Applications &gt; Create Application &gt;
-FinOpsX86&gt; copyusagereport &gt; Schedules &gt; Add Schedule
+Developer Services -> Applications -> FinOps -> copyusagereport -> Schedules -> Add Schedule
 
 <img src="./images/image6.png"
 style="width:3.94444in;height:4.23611in" />
@@ -295,8 +186,7 @@ Fig.6 – Funcion Schedule
 > **Administration** → **Log Groups**. Select the **compartment** where
 > you want to create the log group from the left-side menu.
 >
-> <img src="./images/image7.png"
-> style="width:4.69444in;height:2.10278in" />
+> <img src="./images/image7.png" style="width:4.69444in;height:2.10278in" />
 >
 Fig.7 – Log Group
 
@@ -316,8 +206,7 @@ Bottom of Form
 > **Administration** → **Import Configuration Content** and select the
 > file you have just downloaded.
 >
-> <img src="./images/image8.png"
-> style="width:3.47989in;height:3.03434in" />
+> <img src="./images/image8.png" style="width:3.47989in;height:3.03434in" />
 
 Create the Streaming
 
@@ -330,8 +219,7 @@ Create the Streaming
 Go to **Analytics & AI** → **Streaming** → **Stream Pools**→ **Create
 Stream Pool**.
 
-> <img src="./images/image9.png"
-> style="width:3.08333in;height:5.22222in" />
+> <img src="./images/image9.png" style="width:3.08333in;height:5.22222in" />
 
 *Create the Object Rule on Log Analytics*
 
@@ -346,12 +234,12 @@ From OCI Shell console create the json file
 
 "osNamespace": "frxfz3gch4zb",
 
-"osBucketName": "Cost\_Usage\_Reports",
+"osBucketName": "Cost_Usage_Reports",
 
 "logGroupId":
 "<LogGroup OCID>",
 
-"logSourceName": "FOCUS\_OCI",
+"logSourceName": "FOCUS_OCI",
 
 "streamId":"<Stream OCID>"
 
