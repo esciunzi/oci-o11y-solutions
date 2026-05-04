@@ -235,7 +235,7 @@ file://createFocusObjectRule.json --namespace-name <Bucket Namespace>
 ```
 *Import the FOCUS Dashboard*
 
-> Download the dashboard configuration from [here](./src/FinOps_final.json).
+> Download the dashboard configuration from [here](./src/FinOps_V3.json).
 >
 > Go to **Observability & Management** → **Management Dashboards** **→
 > Import dashboards** and select the file you have just downloaded.
